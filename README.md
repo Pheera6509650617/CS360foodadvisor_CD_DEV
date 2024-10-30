@@ -306,7 +306,67 @@ yarn install && yarn dev
 ## Test File Structure
 
 ## Test Coverage
+#### Unit Test
+1. Login and Register Test
+```js
+describe('Login and Register TEST', () => {
+    let push;
 
+    beforeEach(() => {
+        push = jest.fn();
+        useRouter.mockReturnValue({ push });
+        fetch.resetMocks();
+    });
+
+    it('should login successfully and redirect to /profile', async () => {
+        // Mock API response
+        fetch.mockResponseOnce(JSON.stringify({ jwt: 'fake-jwt-token' }));
+
+        render(<Login />);
+        
+        // Input identifier and password
+        fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
+        fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
+
+        // Submit the form
+        fireEvent.click(screen.getByText('Login'));
+
+        // Wait for redirection
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/profile'));
+        expect(localStorage.getItem('token')).toBe('fake-jwt-token');
+    });
+    // Test implementation
+})
+```
+- Mock API Response: The line fetch.mockResponseOnce simulates an API response, returning a JSON object with a jwt key and a token value ('fake-jwt-token'). This allows us to test without needing a real API connection.
+
+- Render Component: The render (<Login />) function displays the Login component for testing.
+
+- Input Data: fireEvent.change simulates entering data into the Email and Password fields.
+
+	- screen.getByPlaceholderText('Email') finds the field with the placeholder Email and sets the value to 'user@example.com'.
+	- screen.getByPlaceholderText('Password') finds the password field and sets it to 'password123'.
+- Click Login Button: The fireEvent.click simulates clicking the button labeled Login to submit the login form.
+
+- Wait for Redirection: The waitFor function waits for the push function to be called with the path '/profile', confirming that, after a successful login, the page should redirect to the profile page.
+
+- Check Token in Local Storage: The line expect(localStorage.getItem('token')).toBe('fake-jwt-token') confirms that the received token was stored in localStorage.
+
+```js
+    it('should display error message on login failure', async () => {
+        fetch.mockResponseOnce(JSON.stringify({ error: { message: 'Invalid credentials' } }), { status: 400 });
+
+        render(<Login />);
+
+        fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'wronguser@example.com' } });
+        fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'wrongpassword' } });
+        fireEvent.click(screen.getByText('Login'));
+
+        await waitFor(() => screen.getByText('Invalid credentials'));
+    });
+```
+
+2. Login and Register Test
 ## Viewing Test Results
 
 ## Adding New Tests
