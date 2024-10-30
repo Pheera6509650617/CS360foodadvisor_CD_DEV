@@ -12,13 +12,12 @@ on:
 jobs:
   build:
 
-    runs-on: ${{ matrix.poommie }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        poommie: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [16.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
     - uses: actions/checkout@v4
@@ -26,8 +25,10 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-
         cache: 'npm'
-    - run: npm install  # เพิ่มตรงนี้เพื่อติดตั้ง dependencies หาก lock file ไม่มีอยู่
+
+    - name: Install dependencies
+      run: npm install  # ใช้ npm install แทน npm ci เพื่อไม่ต้องใช้ package-lock.json
+
     - run: npm run build --if-present
     - run: npm test
