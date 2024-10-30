@@ -31,5 +31,9 @@ jobs:
     
     - name: Install api dependencies
       working-directory: ./api
+      run: |
+        yarn global add jest
+        yarn add @babel/runtime
+        yarn && yarn seed
       
     - run: yarn test
