@@ -1,8 +1,24 @@
 const request = require('supertest');
 
 let userID;
+let token;
 
 describe('Login API Test', () => {
+  it('should register', async () => {
+    const res = await request('http://localhost:1337')
+        .post('/api/auth/local/register')
+        .send({
+            username: "test1",
+            email: "test1@gmail.com",
+            password: "test1pass",
+            job: "Student"
+        })
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('jwt');
+    userID = res.body.user.id;
+  });
+
   it('should return JWT token when login is successful', async () => {
     const res = await request('http://localhost:1337')
         .post('/api/auth/local')
@@ -15,6 +31,7 @@ describe('Login API Test', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('jwt');
     expect(typeof res.body.jwt).toBe('string');
+    token = res.body.jwt;
   });
 
   it('should return error message when login fails', async () => {
@@ -31,28 +48,13 @@ describe('Login API Test', () => {
     expect(res.body.error.message).toBe('Invalid identifier or password');
   });
 
-  it('should register', async () => {
-    const res = await request('http://localhost:1337')
-        .post('/api/auth/local/register')
-        .send({
-            username: "testtest",
-            email: "testtest@gmail.com",
-            password: "testtestpass",
-            job: "Student"
-        })
-
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toHaveProperty('jwt');
-    userID = res.body.user.id;
-  });
-
   it('should error when EMAIL of Username are already in use', async () => {
     const res = await request('http://localhost:1337')
         .post('/api/auth/local/register')
         .send({
-            username: "testtest",
-            email: "testtest@gmail.com",
-            password: "testtestpass",
+            username: "test1",
+            email: "test1@gmail.com",
+            password: "test1pass",
             job: "Student"
         })
 
@@ -60,15 +62,16 @@ describe('Login API Test', () => {
     expect(res.body.error.message).toBe("Email or Username are already taken");
   });
 
-  afterAll(async () => {
+  /*afterAll(async () => {
     if(userID) {
         const res = await request('http://localhost:1337')
         .delete(`/api/users/${userID}`)
+        .set('Authorization', `Bearer ${token}`)
 
         // ตรวจสอบสถานะการตอบกลับ
         expect(res.statusCode).toBe(200);
     }
-  });
+  });*/
 
   it('should error if Register with wrong EMAIL format', async () => {
     const res = await request('http://localhost:1337')
@@ -96,5 +99,4 @@ describe('Login API Test', () => {
     expect(res.statusCode).toBe(400);
     expect(res.body.error.message).toBe("job must be defined.");
   });
-
 });
