@@ -11,14 +11,13 @@ on:
 
 jobs:
   build:
-
-    runs-on: ${{ matrix.poommie }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
-        poommie: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [16.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
     - uses: actions/checkout@v4
@@ -27,7 +26,56 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-        cache: 'npm'
-    - run: npm install  # เพิ่มตรงนี้เพื่อติดตั้ง dependencies หาก lock file ไม่มีอยู่
-    - run: npm run build --if-present
-    - run: npm test
+    - name: Install Yarn
+      run: npm install -g yarn
+    
+    - name: Install PM2 globally
+      run: npm install -g pm2@latest
+      
+    - name: Install api dependencies
+      working-directory: ./api
+      run: |
+        yarn global add jest
+        yarn add @babel/runtime
+        yarn && yarn seed || true
+
+    - name: Install client dependencies
+      working-directory: ./client
+      run: |
+        yarn || true
+
+    - name: Configure PM2
+      run: |
+        echo "module.exports = {
+          apps: [
+            {
+              name: 'api',
+              cwd: '/home/runner/work/CS360-QWERTYUIOP/api',
+              script: 'yarn',
+              args: 'develop',
+              env: {
+                ADMIN_JWT_SECRET: '${{ secrets.ADMIN_JWT_SECRET }}',
+                JWT_SECRET: '${{ secrets.JWT_SECRET }}',
+                STRAPI_ADMIN_CLIENT_URL: 'http://Your_Public_IP:3000',
+                STRAPI_ADMIN_CLIENT_PREVIEW_SECRET: '${{ secrets.PREVIEW_SECRET }}',
+              },
+            },
+            {
+              name: 'client',
+              cwd: '/home/runner/work/CS360-QWERTYUIOP/client',
+              script: 'yarn',
+              args: 'dev',
+              env: {
+                NEXT_PUBLIC_API_URL: 'http://Your_Public_IP:1337',
+                PREVIEW_SECRET: '${{ secrets.PREVIEW_SECRET }}',
+              },
+            },
+          ],
+        };" > ecosystem.config.js
+
+    - name: Start Applications with PM2
+      run: pm2 start ecosystem.config.js
+
+    - name: run integation test
+      working-directory: ./api
+      run: yarn test
