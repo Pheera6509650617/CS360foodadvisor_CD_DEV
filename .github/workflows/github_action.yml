@@ -35,5 +35,12 @@ jobs:
         yarn global add jest
         yarn add @babel/runtime
         yarn && yarn seed
-      
-    - run: yarn test
+
+    - name: Install client dependencies
+      working-directory: ./client
+      run: |
+        yarn
+
+    - name: run integation test
+      working-directory: ./api
+      run: yarn test
