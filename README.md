@@ -22,7 +22,8 @@ The project goal is to improve the existing foodadvisor application by enhancing
 
 ### Features
 - **Feature 1:** Log in
-- **Feature 2:** 
+- **Feature 2:** Register
+- **Feature 3:** Profile
 
 ### Technologies Used
 
