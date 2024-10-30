@@ -77,5 +77,5 @@ jobs:
       run: pm2 start ecosystem.config.js
 
     - name: run integation test
-      working-directory: ./api
+      working-directory: ./api/tests
       run: yarn test
