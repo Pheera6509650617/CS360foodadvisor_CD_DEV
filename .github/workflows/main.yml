@@ -8,4 +8,17 @@ on:
 env:
   REGISTRY: ghcr.io
   NAMESPACE: ${{ github.repository_owner }}
+  IMAGE_NAME: tonkit-web:${{ github.sha }}
+  PREVIOUS_IMAGE_NAME: tonkit-web:${{ github.event.pull_request.base.sha }}
  
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
