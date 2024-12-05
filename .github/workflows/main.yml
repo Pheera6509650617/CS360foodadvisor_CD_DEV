@@ -1,0 +1,92 @@
+name: Build And Deploy
+
+on:
+  pull_request:
+    types: ['closed']
+    branches: ['master']
+
+env:
+  REGISTRY: ghcr.io
+  NAMESPACE: ${{ github.repository_owner }}
+  IMAGE_NAME: tonkit-web:${{ github.sha }}
+  PREVIOUS_IMAGE_NAME: tonkit-web:${{ github.event.pull_request.base.sha }}
+ 
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete all of previous images
+        run: |
+            curl -L \
+             -X DELETE \
+             -H "Accept: application/vnd.github+json" \
+             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+             -H "X-GitHub-Api-Version: 2022-11-28" \
+             https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/tonkit-web
+
+      - name: Create environment file
+        run: |
+          touch .env 
+          echo BACKEND_SCHEME=${{ vars.BACKEND_SCHEME }} >> .env
+          echo BACKEND_HOST=${{ vars.BACKEND_HOST }} >> .env
+          echo BACKEND_PORT=${{ vars.BACKEND_PORT }} >> .env
+          echo BACKEND_URL=${{ vars.BACKEND_SCHEME }}://${{ vars.BACKEND_HOST }}:${{ vars.BACKEND_PORT }} >> .env
+          echo TONKIT_SCHEME=${{ vars.TONKIT_SCHEME }} >> .env
+          echo TONKIT_HOST=${{ vars.TONKIT_HOST }} >> .env
+          echo TONKIT_PORT=${{ vars.TONKIT_PORT }} >> .env
+          echo NEXT_PUBLIC_TONKIT_URL=${{ vars.TONKIT_SCHEME }}://${{ vars.TONKIT_HOST }}:${{ vars.TONKIT_PORT }} >> .env
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}
+            
+      - name: Install ssh keys
+        run: |
+            install -m 600 -D /dev/null ~/.ssh/id_rsa
+            echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+            ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+      
+      - name: Prune exists images and containers
+        run: |
+            ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF 
+                  docker container ls --filter "status=running" --format "{{.ID}}" | xargs docker stop
+                  docker container prune -f
+                  docker image prune -a -f
+            EOF
+      
+      - name: Connect server and pull image
+        run: |
+            ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF 
+      
+              echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin 
+              
+              docker pull ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}
+      
+              docker run --name tonkit-web \
+              -p 127.0.0.1:3000:3000 \
+              -e BACKEND_URL=${{ vars.BACKEND_SCHEME }}://${{ vars.BACKEND_HOST }}:${{ vars.BACKEND_PORT }} \
+              -d ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }} \
+      
+            EOF
+      
+      - name: Clean Up
+        run: rm -rf ~/.ssh .env
