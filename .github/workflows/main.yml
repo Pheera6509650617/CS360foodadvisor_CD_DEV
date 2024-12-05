@@ -3,7 +3,7 @@ name: Build And Deploy
 on:
   pull_request:
     types: ['closed']
-    branches: ['master']
+    branches: ['Test']
 
 env:
   REGISTRY: ghcr.io
