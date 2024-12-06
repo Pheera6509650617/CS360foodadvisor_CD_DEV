@@ -2,6 +2,7 @@ import React from 'react';
 import Layout from '../../components/layout';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import { getStrapiURL } from '../../utils';
 
 const Register = ({ global, pageData, preview }) => {
   const [username, setUsername] = useState('');
@@ -14,7 +15,7 @@ const Register = ({ global, pageData, preview }) => {
   const Submit = async (e) => {
     e.preventDefault();
 
-    const res = await fetch('http://localhost:1337/api/auth/local/register', {
+    const res = await fetch(getStrapiURL('/auth/local/register'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
