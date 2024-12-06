@@ -1046,5 +1046,5 @@ describe('xxxxxx your feature name xxxxxx', () => {
 });
 ```
 
-## Node.js CI Workflows
+## Node.js CI Workflow
 
